@@ -1,5 +1,5 @@
 # d3 Intro and Survival Guide
-This repo contains the slides and example presented at [Refresh DC](https://twitter.com/refreshdc) in August 2013. 
+This repo contains the slides and example presented at [Refresh DC](https://twitter.com/refreshdc) in August 2014. 
 
 The slides for the talk are the keynote and the pdf called d3Survival.
 
