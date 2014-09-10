@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width" />
+		<link rel="icon" href="/favicon.png" type="image/x-icon">
+		<title>Simple Example</title>
+		<style>
+			/*Don't ever do this in real life - unless you know exactly what you are doing*/
+
+			*{
+				font-family: helvetica, arial, san-serif;
+			}
+
+			.chart-title{
+				text-align: center;
+			}
+
+			.axis path,
+			.axis line {
+			  fill: none;
+			  stroke: #000;
+			  shape-rendering: crispEdges;
+			}
+
+			.avg-line{
+				fill:none;
+				stroke:steelblue;
+			}
+		
+			.rotten--Line{
+				stroke:red;
+				fill:none;
+			}
+
+
+	  	</style>
+	</head>
+	<body>
+		<header class="chart-title">
+				<h1>Nic Cage</h1>
+				<p>His career according to rotten tomatoes</p>
+		</header>
+		<div id="Chart">
+
+		</div>
+  	  	<p>
+	  		<h5>Sources</h5>
+	  		<ul class="references">
+	  			<li><a href="http://www.rottentomatoes.com/celebrity/nicolas_cage/">Rotten Tomatoes - Nicolas Cage</a></li>
+	  			<li><a href="http://www.boxofficemojo.com/people/chart/?view=Actor&id=nicolascage.htm&sort=gross&order=DESC&p=.htm">Box Office Mojo - Nicolas Cage</a></li>
+	  		</ul>
+	  	</p>
+		<script src="http://d3js.org/d3.v3.js"></script>
+		<script>
+
+			var csvUrl = "/data/NicCage.csv";
+			var debug = {};
+
+			var calculateAverages = function(movieData){
+				return d3.nest()
+						.key(function(d) { return d.Year; })
+						.rollup(function(d){ return d3.mean(d, function(g){ return g.Rating; })}).entries(movieData);
+			};
+			
+			var moviePlot = function(movies){
+
+				console.log(movies); //Make sure we are getting what we expect - remove before production
+
+				//clean up the data - if I hadn't cleaned it by up before we could skip data with missing records
+				movies.forEach(function(d) {
+				    d.date = d3.time.format('%Y').parse(d.Year);
+				    d.Year = +d.Year; //lazy way to coerce a string to a number
+				    d.Rating = +d.Rating.substring(0,d.Rating.length-1) //trim the '%' coerce to a number
+				  });
+
+				//For use on the console - remove before going to production 
+				debug = movies;
+
+				//Plot Size and margin setup
+				var margin = {top: 20, right: 80, bottom: 30, left: 50},
+				    width = 1200 - margin.left - margin.right,
+				    height = 500 - margin.top - margin.bottom;
+
+			    //Creating our chart element
+				var svg = d3.select("#Chart").append("svg")
+				    .attr("width", width + margin.left + margin.right)
+				    .attr("height", height + margin.top + margin.bottom)
+				  .append("g")
+				    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+			    //Setup our domain to range mapping
+			    var x = d3.scale.linear()
+			    	.domain([1982,2014]) //Nic's first move was in 1982 and he made a movie this year
+			    	.range([0, width]);
+
+				var y = d3.scale.linear()
+					.domain([0,100]) //Rotten tomatoes scale is from 0 - 100
+				    .range([height, 0]); //notice this is flipped, because of the coordinate system 0 on Y axis is the height of graph
+
+			    svg.selectAll('circle') //get me all the circles
+			    	.data(movies) 		//We want a circle for each data point
+			    	.enter()			//If it is a new data point
+			    	.append("circle")	//Append a circle
+				      .attr("class", "dot")
+				      .attr("r", 3.5)
+				      .attr("cx", function(d) { return x(d.Year); })
+				      .attr("cy", function(d) { return y(d.Rating); })
+				      .attr("fill", "gray");
+
+
+				svg.append("line")
+					.attr("x1", 0)
+					.attr("y1", height/2)
+					.attr("x2", width)
+					.attr("y2", height/2)
+					.attr("class", "rotten--Line");
+
+
+		      	var xAxis = d3.svg.axis()
+				    .scale(x)
+				    .orient("bottom")
+				    .ticks(20)
+				    .tickFormat(d3.format("d"));
+
+				var yAxis = d3.svg.axis()
+				    .scale(y)
+				    .orient("left");
+
+
+			    svg.append("g")
+			      .attr("class", "x axis")
+			      .attr("transform", "translate(0," + height + ")") //put the axis at the bottom
+			      .call(xAxis);
+
+			  	svg.append("g")
+				      .attr("class", "y axis")
+				      .call(yAxis)
+				    .append("text")
+				      .attr("transform", "rotate(-90)")
+				      .attr("y", -50)
+				      .attr("dy", ".71em")
+				      .style("text-anchor", "end")
+				      .text("Rotten Tomatoes Score");
+
+				//https://github.com/mbostock/d3/wiki/SVG-Shapes#line
+				//Constructs a new line generator with the default x- and y-accessor functions 
+				//(that assume the input data is a two-element array of numbers; see below for details), 
+				//and linear interpolation.
+	      		var line = d3.svg.line()
+				    .x(function(d) { return x(d.key); })
+				    .y(function(d) { return y(d.values); });
+
+		    	svg.append("path")
+		    		.datum(calculateAverages(movies)) // use selection.datum, which binds data directly without computing a join
+				      .attr("class", "avg-line")
+				      .attr("d", line);
+
+
+			};
+
+
+			//This function kicks everything off. Calls the data and triggers a callback. We build our graph in the callback.
+			d3.csv(csvUrl, moviePlot);
+
+		</script>
+	</body>
+</html>

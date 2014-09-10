@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width" />
+		<title>Simple Example</title>
+		<style>
+			/*Don't ever do this in real life - unless you know exactly what you are doing*/
+
+			*{
+				font-family: helvetica, arial, san-serif;
+			}
+
+			.axis path,
+			.axis line {
+			  fill: none;
+			  stroke: #000;
+			  shape-rendering: crispEdges;
+			}
+
+			.avg-line{
+				fill:none;
+				stroke:steelblue;
+			}
+		
+			.rotten--Line{
+				stroke:red;
+				fill:none;
+			}
+
+	  	</style>
+	</head>
+	<body>
+		<header class="">
+				<h1>A Small Overview of Selections</h1>
+				<p>Enter, Update, Exit - what it all means</p>
+		</header>
+		<div>
+			<h2>Our Current Selection</h2>
+			[<span id="selection"></span>]
+		</div>
+		<div id="Chart">
+
+		</div>
+	  
+		<script src="http://d3js.org/d3.v3.js"></script>
+		<script>
+
+			var csvUrl = "/data/NicCage.csv";
+			var data = [];
+
+
+			
+			//Plot Size and margin setup
+			var margin = {top: 20, right: 80, bottom: 30, left: 50},
+			    width = 1200 - margin.left - margin.right,
+			    height = 500 - margin.top - margin.bottom;
+
+		    //Creating our chart element
+			var svg = d3.select("#Chart").append("svg")
+			    .attr("width", width + margin.left + margin.right)
+			    .attr("height", height + margin.top + margin.bottom)
+			  .append("g")
+			    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+
+
+
+
+			var updateSelections = function(chart, array){
+
+
+			};
+
+		</script>
+	</body>
+</html>

@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width" />
+		<link rel="icon" href="/favicon.png" type="image/x-icon">
+		<title>Complex Example</title>
+		<style>
+			/*Don't ever do this in real life - unless you know exactly what you are doing*/
+
+			*{
+				font-family: helvetica, arial, san-serif;
+			}
+
+			.chart-title{
+				text-align: center;
+			}
+
+			.axis path,
+			.axis line {
+			  fill: none;
+			  stroke: #000;
+			  shape-rendering: crispEdges;
+			}
+
+			.movie-circle{
+
+			}
+
+			.avg-line{
+				fill:none;
+			}
+		
+			.rotten--Line{
+				stroke:red;
+				fill:none;
+			}
+
+			.tick text{
+				font-size: 0.6em;
+			}
+
+			.legend-label{
+				font-size: 0.8em;
+			}
+
+			.voronoi path {
+			  fill: none;
+			  pointer-events: all;
+			}
+
+			.voronoi--show path {
+			  stroke: gray;
+			}
+
+			#Chart{
+				position: relative;
+			}
+
+			#form {
+			  position: absolute;
+			  bottom: 35px;
+			  left: 51px;
+			  font-size: 0.8em;
+			}
+
+	  	</style>
+	</head>
+	<body>
+		<header class="chart-title">
+				<h1>Actor Career Arcs</h1>
+				<p>According to rotten tomatoes</p>
+		</header>
+		<div id="Chart">
+			<label id="form" for="show-voronoi">
+			  <input type="checkbox" id="show-voronoi" disabled>
+			  Show Voronoi
+			</label>
+		</div>
+	  
+		<script src="http://d3js.org/d3.v3.js"></script>
+		<script>
+
+			var csvUrl = "/data/AllActors.csv";
+			var debug = {};
+
+			var calculateAverages = function(movieData){
+				return d3.nest()
+						.key(function(d){ return d.Actor; })
+						.key(function(d){ return d.Year; })
+						.rollup(function(d){ return d3.mean(d, function(g){ return g.Rating; })})
+						.entries(movieData);
+			};
+
+			var plotLegend = function(chartSvg, x, y, actors, color){
+
+					var legend = chartSvg.append("g")
+									.attr("transform", "translate(" + x+ "," + y + ")")
+									.attr("class", "legend");
+
+					var actors = legend.selectAll(".actors")
+						.data(actors)
+						.enter().append("g").attr("class", "legend-item");
+							//.attr("x", "translate(0," + (function(d,i){ return i*10 })+ ")");
+
+					actors.append("circle")
+							.attr("r", 3.5)
+						    .attr("cx", "0")
+						    .attr("class", "legend-dot")
+						    .attr("cy", function(d,i){ return (i*25) - 5  })
+						    .attr("fill", function(d){ return color(d)});
+
+				    actors.append("text")
+						    .attr("x", 12)
+						    .attr("y", function(d,i){ return i*25 })
+						    .attr("class", "legend-label")
+						    .text(function(d){ return d;});
+
+			};
+
+			
+			var moviePlot = function(movies){
+
+				console.log(movies); //Make sure we are getting what we expect - remove before production
+
+				//clean up the data - if I hadn't cleaned it by up before we could skip data with missing records
+				movies.forEach(function(d) {
+				    d.date = d3.time.format('%Y').parse(d.Year);
+				    d.Year = +d.Year; //lazy way to coerce a string to a number
+				    d.Rating = +d.Rating.substring(0,d.Rating.length-1) //trim the '%' coerce to a number
+				  });
+
+
+				//For use on the console - remove before going to production 
+				debug = movies;
+
+				//Plot Size and margin setup
+				var margin = {top: 20, right: 80, bottom: 30, left: 50},
+				    width = 1200 - margin.left - margin.right,
+				    height = 500 - margin.top - margin.bottom;
+
+
+			     //Setup our domain to range mapping
+			    var x = d3.scale.linear()
+			    	.domain([1982,2014]) //Nic's first move was in 1982 and he made a movie this year
+			    	.range([0, width]);
+
+				var y = d3.scale.linear()
+					.domain([0,100]) //Rotten tomatoes scale is from 0 - 100
+				    .range([height, 0]); //notice this is flipped, because of the coordinate system 0 on Y axis is the height of graph
+
+				//https://github.com/mbostock/d3/wiki/Ordinal-Scales#category10
+				//Constructs a new ordinal scale with a range of ten categorical colors
+			    var color = d3.scale.category10();
+
+
+		      	var xAxis = d3.svg.axis()
+				    .scale(x)
+				    .orient("bottom")
+				    .ticks(20)
+				    .tickFormat(d3.format("d"));
+
+				var yAxis = d3.svg.axis()
+				    .scale(y)
+				    .orient("left");
+
+				//https://github.com/mbostock/d3/wiki/SVG-Shapes#line
+				//Constructs a new line generator with the default x- and y-accessor functions 
+				//(that assume the input data is a two-element array of numbers; see below for details), 
+				//and linear interpolation.
+	      		var line = d3.svg.line()
+				    .x(function(d) { return x(d.key); })
+				    .y(function(d) { return y(d.values); });
+
+
+			    //Creating our chart element
+				var svg = d3.select("#Chart").append("svg")
+				    .attr("width", width + margin.left + margin.right)
+				    .attr("height", height + margin.top + margin.bottom)
+				  .append("g")
+				    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+
+
+			    svg.selectAll('circle') //get me all the circles
+			    	.data(movies) 		//We want a circle for each data point
+			    	.enter()			//If it is a new data point
+			    	.append("circle")	//Append a circle
+				      .attr("class", "dot")
+				      .attr("r", 3.5)
+				      .attr("cx", function(d) { return x(d.Year); })
+				      .attr("cy", function(d) { return y(d.Rating); })
+				      .attr("fill", function(d){ return color(d.Actor)})
+				      .attr("data-bound", function(d){ return this;});
+
+
+			    var actorAverages = calculateAverages(movies)
+
+		    	svg.selectAll('.avg-line')
+		    		.data(actorAverages).enter().append("path")
+				      .attr("class", "avg-line")
+				      .attr("stroke", function(d){ return color(d.key); })
+				      .attr("d", function(d){ return line(d.values); });
+
+				svg.append("line")
+					.attr("x1", 0)
+					.attr("y1", height/2)
+					.attr("x2", width)
+					.attr("y2", height/2)
+					.attr("class", "rotten--Line");
+
+
+			    svg.append("g")
+			      .attr("class", "x axis")
+			      .attr("transform", "translate(0," + height + ")") //put the axis at the bottom
+			      .call(xAxis);
+
+			  	svg.append("g")
+				      .attr("class", "y axis")
+				      .call(yAxis)
+				    .append("text")
+				      .attr("transform", "rotate(-90)")
+				      .attr("y", -50)
+				      .attr("dy", ".71em")
+				      .style("text-anchor", "end")
+				      .text("Rotten Tomatoes Score");
+
+				plotLegend(svg, 10, height-100, actorAverages.map(function(d){ return d.key;}), color);
+
+
+				//All the voronoi stuff
+				var voronoiData = movies.map(function(d){ return [ x(d.Year), y(d.Rating) ]; }) 
+
+				var voronoi = d3.geom.voronoi()
+				    .clipExtent([[0,0], [width, height]]);
+
+
+			    function polygon(d) {
+		    	  if(d === undefined) return ""; //My lack of understanding is clear here
+				  return "M" + d.map(function(g){ return g.join(",")}).join("L") + "Z";
+				}
+
+		      	var voronoiGroup = svg.append("g")
+				      .attr("class", "voronoi");
+
+
+				  voronoiGroup.selectAll("path")
+				      .data(voronoi(voronoiData))
+				    .enter().append("path")
+				      .attr("d", polygon)
+				      .datum(function(d){
+				      	console.log("datum point");
+						console.log(d);
+						return (d == undefined)? null : d.point;
+				      })
+				      //.datum(function(d) { return d.point; })
+				      .on("mouseover", mouseover);
+				      //.on("mouseout", mouseout);
+
+				  	d3.select("#show-voronoi")
+				      .property("disabled", false)
+				      .on("change", function() { voronoiGroup.classed("voronoi--show", this.checked); });
+
+		        function mouseover(d) {
+				    //d3.select(d.city.line).classed("city--hover", true);
+				    //d.city.line.parentNode.appendChild(d.city.line);
+				    //focus.attr("transform", "translate(" + x(d.date) + "," + y(d.value) + ")");
+				    //focus.select("text").text(d.city.name);
+				    console.log(d3.select(this));
+				    console.log("Hover");
+				    console.log(d);
+				  };
+
+				  // function mouseout(d) {
+				  //   //d3.select(d.city.line).classed("city--hover", false);
+				  //   //focus.attr("transform", "translate(-100,-100)");
+				  // };
+
+
+			};
+
+
+			//This function kicks everything off. Calls the data and triggers a callback. We build our graph in the callback.
+			d3.csv(csvUrl, moviePlot);
+
+		</script>
+	</body>
+</html>
