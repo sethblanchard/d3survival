@@ -13,4 +13,4 @@ The simple example is the complete example demonstrated at the talk. It demonstr
 
 Hopefully the comments in the file are enough to illustrate the points I talked through (even if you weren’t there).
 
-The complicated example was one I was going to use to show to to survive using d3. I wasn’t able to get it working enough to demonstrate during the talk. I’m happy to take pull requests on it.
+The complicated example was one I was going to use to show to how to survive using d3. I wasn’t able to get it working enough to demonstrate during the talk. I’m happy to take pull requests on it.
